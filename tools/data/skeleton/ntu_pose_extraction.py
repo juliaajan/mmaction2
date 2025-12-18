@@ -11,11 +11,12 @@ import numpy as np
 from mmaction.apis import detection_inference, pose_inference
 from mmaction.utils import frame_extract
 
+#adapt the folder locations to fix FileNotFoundError: [Errno 2] No such file or directory: 'demo/demo_configs/faster-rcnn_r50-caffe_fpn_ms-1x_coco-person.py' error
 args = abc.abstractproperty()
-args.det_config = 'demo/demo_configs/faster-rcnn_r50-caffe_fpn_ms-1x_coco-person.py'  # noqa: E501
+args.det_config = '/data/0janssen/mmaction2/demo/demo_configs/faster-rcnn_r50-caffe_fpn_ms-1x_coco-person.py'  # noqa: E501
 args.det_checkpoint = 'https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco-person/faster_rcnn_r50_fpn_1x_coco-person_20201216_175929-d022e227.pth'  # noqa: E501
 args.det_score_thr = 0.5
-args.pose_config = 'demo/demo_configs/td-hm_hrnet-w32_8xb64-210e_coco-256x192_infer.py'  # noqa: E501
+args.pose_config = '/data/0janssen/mmaction2/demo/demo_configs/td-hm_hrnet-w32_8xb64-210e_coco-256x192_infer.py'  # noqa: E501
 args.pose_checkpoint = 'https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w32_coco_256x192-c78dce93_20200708.pth'  # noqa: E501
 
 
@@ -194,12 +195,10 @@ def bboxes2bbox(bbox, num_frame):
                         ret[t, 1] = ret[t - 1, 0]
     return ret
 
-
+#this method will not get used anyways (due to skip_postproc flag)
 def ntu_det_postproc(vid, det_results):
     det_results = [removedup(x) for x in det_results]
-    label = int(vid.split('/')[-1].split('A')[1][:3])
-    mpaction = list(range(50, 61)) + list(range(106, 121))
-    n_person = 2 if label in mpaction else 1
+    n_person = 1 #in SLR videos, there is always only one person
     is_easy, bboxes = is_easy_example(det_results, n_person)
     if is_easy:
         print('\nEasy Example')
@@ -253,8 +252,8 @@ def pose_inference_with_align(args, frame_paths, det_results):
 
     return keypoints, scores
 
-
-def ntu_pose_extraction(vid, skip_postproc=False):
+#skip the post processing since it is done fpr NTU videos
+def ntu_pose_extraction(vid, skip_postproc=True):
     tmp_dir = TemporaryDirectory()
     frame_paths, _ = frame_extract(vid, out_dir=tmp_dir.name)
     det_results, _ = detection_inference(
@@ -277,8 +276,8 @@ def ntu_pose_extraction(vid, skip_postproc=False):
     anno['frame_dir'] = osp.splitext(osp.basename(vid))[0]
     anno['img_shape'] = (1080, 1920)
     anno['original_shape'] = (1080, 1920)
-    anno['total_frames'] = keypoints.shape[1]
-    anno['label'] = int(osp.basename(vid).split('A')[1][:3]) - 1
+    anno['total_frames'] = keypoints.shape[1] #TODO
+    anno['label'] = "A1" #TODO
     tmp_dir.cleanup()
 
     return anno
