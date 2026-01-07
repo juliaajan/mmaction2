@@ -306,7 +306,7 @@ def iterate_videos(path_to_videos, output_path, skip_postproc):
 
     #iterate over all videos, extract poses and save them as pkl files
     for video in os.listdir(path_to_videos):
-        anno = ntu_pose_extraction(video, skip_postproc)
+        anno = ntu_pose_extraction(osp.join(path_to_videos, video), skip_postproc)
         print("Finished pose extraction for video " + video)
 
         output_filename = osp.join(output_path, osp.splitext(osp.basename(video))[0] + '.pkl')
@@ -316,8 +316,8 @@ def iterate_videos(path_to_videos, output_path, skip_postproc):
 if __name__ == '__main__':
     global_args = parse_args()
     args.device = global_args.device
-    args.video = global_args.path_to_videos
-    args.output = global_args.output_path
+    args.path_to_videos = global_args.path_to_videos
+    args.output_path = global_args.output_path
     args.skip_postproc = global_args.skip_postproc
     iterate_videos(args.path_to_videos, args.output_path, args.skip_postproc)
 
