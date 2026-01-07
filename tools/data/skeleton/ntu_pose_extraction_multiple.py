@@ -304,6 +304,8 @@ def iterate_videos(path_to_videos, output_path, skip_postproc):
         if os.path.isfile(os.path.join(path_to_videos, name)))
     print("Starting pose extraction for " + str(count_files) + " videos in folder " + path_to_videos)
 
+    value_error_counter = 0
+
     #iterate over all videos, extract poses and save them as pkl files
     for video in os.listdir(path_to_videos):
         try:
@@ -311,14 +313,17 @@ def iterate_videos(path_to_videos, output_path, skip_postproc):
             print("Finished pose extraction for video " + video)
         except ValueError as e:
             print(f"ValueError for video '{video}': {e}")
+            value_error_counter += 1
             continue
         except Exception as e:
             print(f"Error processing video '{video}': {e}")
             continue
-        
+
         output_filename = osp.join(output_path, osp.splitext(osp.basename(video))[0] + '.pkl')
         mmengine.dump(anno, output_filename)
         print("Saved pose annotation for" + video + " to " + output_filename)
+    print("\033[31m Pose extraction completed with " + str(value_error_counter) + " videos skipped due to ValueError.\033[0m")
+
 
 if __name__ == '__main__':
     global_args = parse_args()
