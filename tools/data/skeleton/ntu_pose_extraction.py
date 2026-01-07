@@ -277,7 +277,7 @@ def ntu_pose_extraction(vid, skip_postproc=True):
     anno['img_shape'] = (1080, 1920)
     anno['original_shape'] = (1080, 1920)
     anno['total_frames'] = keypoints.shape[1] #TODO
-    anno['label'] = "A1" #TODO
+    anno['label'] = int(osp.basename(vid).split('_GL')[1][:5]) - 1 #adapt separating character (_GL) and length (5)
     tmp_dir.cleanup()
 
     return anno
