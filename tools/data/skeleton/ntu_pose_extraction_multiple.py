@@ -16,7 +16,7 @@ from mmaction.utils import frame_extract
 #TODO: muss das config file anpassen und dort zB eigene annotations verlinken und ggf Anzahl keypoints verändern
 #TODO: was ist mit dem checkpoints?
 #TODO: was st der det_score_thr?
-args = abc.abstractproperty()
+args = argparse.Namespace()
 args.det_config = '/data/0janssen/mmaction2/demo/demo_configs/faster-rcnn_r50-caffe_fpn_ms-1x_coco-person.py'  # noqa: E501
 args.det_checkpoint = 'https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco-person/faster_rcnn_r50_fpn_1x_coco-person_20201216_175929-d022e227.pth'  # noqa: E501
 args.det_score_thr = 0.5
@@ -306,9 +306,16 @@ def iterate_videos(path_to_videos, output_path, skip_postproc):
 
     #iterate over all videos, extract poses and save them as pkl files
     for video in os.listdir(path_to_videos):
-        anno = ntu_pose_extraction(osp.join(path_to_videos, video), skip_postproc)
-        print("Finished pose extraction for video " + video)
-
+        try:
+            anno = ntu_pose_extraction(osp.join(path_to_videos, video), skip_postproc)
+            print("Finished pose extraction for video " + video)
+        except ValueError as e:
+            print(f"ValueError for video '{video}': {e}")
+            continue
+        except Exception as e:
+            print(f"Error processing video '{video}': {e}")
+            continue
+        
         output_filename = osp.join(output_path, osp.splitext(osp.basename(video))[0] + '.pkl')
         mmengine.dump(anno, output_filename)
         print("Saved pose annotation for" + video + " to " + output_filename)
