@@ -1,6 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import abc
 import argparse
+import os
 import os.path as osp
 from collections import defaultdict
 from tempfile import TemporaryDirectory
@@ -12,7 +13,9 @@ from mmaction.apis import detection_inference, pose_inference
 from mmaction.utils import frame_extract
 
 #adapt the folder locations to fix FileNotFoundError: [Errno 2] No such file or directory: 'demo/demo_configs/faster-rcnn_r50-caffe_fpn_ms-1x_coco-person.py' error
-#TODO: muss das config file anpassen und dort zB eigene annotations verlinken
+#TODO: muss das config file anpassen und dort zB eigene annotations verlinken und ggf Anzahl keypoints verändern
+#TODO: was ist mit dem checkpoints?
+#TODO: was st der det_score_thr?
 args = abc.abstractproperty()
 args.det_config = '/data/0janssen/mmaction2/demo/demo_configs/faster-rcnn_r50-caffe_fpn_ms-1x_coco-person.py'  # noqa: E501
 args.det_checkpoint = 'https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco-person/faster_rcnn_r50_fpn_1x_coco-person_20201216_175929-d022e227.pth'  # noqa: E501
@@ -59,7 +62,7 @@ def removedup(bbox):
 
 
 def is_easy_example(det_results, num_person):
-    threshold = 0.95
+    threshold = 0.95 #TODO: ggf anpassen
 
     def thre_bbox(bboxes, threshold=threshold):
         shape = [sum(bbox[:, -1] > threshold) for bbox in bboxes]
@@ -73,7 +76,7 @@ def is_easy_example(det_results, num_person):
 
 
 def bbox2tracklet(bbox):
-    iou_thre = 0.6
+    iou_thre = 0.6 #TODO
     tracklet_id = -1
     tracklet_st_frame = {}
     tracklets = defaultdict(list)
@@ -106,7 +109,7 @@ def drop_tracklet(tracklet):
             boxes[..., 3] - boxes[..., 1])
         return np.mean(areas)
 
-    tracklet = {k: v for k, v in tracklet.items() if meanarea(v) > 5000}
+    tracklet = {k: v for k, v in tracklet.items() if meanarea(v) > 5000} #TODO: ggf > 5000 anpassen
     return tracklet
 
 
@@ -199,7 +202,7 @@ def bboxes2bbox(bbox, num_frame):
 #this method will not get used anyways (due to skip_postproc flag)
 def ntu_det_postproc(vid, det_results):
     det_results = [removedup(x) for x in det_results]
-    n_person = 1 #in SLR videos, there is always only one person
+    n_person = 1 #in SLR videos, there is always only one person # n_person = 2 if label in mpaction else 1
     is_easy, bboxes = is_easy_example(det_results, n_person)
     if is_easy:
         print('\nEasy Example')
@@ -275,8 +278,8 @@ def ntu_pose_extraction(vid, skip_postproc=True):
     anno['keypoint'] = keypoints
     anno['keypoint_score'] = scores
     anno['frame_dir'] = osp.splitext(osp.basename(vid))[0]
-    anno['img_shape'] = (1080, 1920)
-    anno['original_shape'] = (1080, 1920)
+    anno['img_shape'] = (1080, 1920) #TODO
+    anno['original_shape'] = (1080, 1920) #TODO
     anno['total_frames'] = keypoints.shape[1] #TODO
     anno['label'] = int(osp.basename(vid).split('_GL')[1][:5]) - 1 #adapt separating character (_GL) and length (5)
     tmp_dir.cleanup()
@@ -287,19 +290,34 @@ def ntu_pose_extraction(vid, skip_postproc=True):
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Generate Pose Annotation for a single NTURGB-D video')
-    parser.add_argument('video', type=str, help='source video')
-    parser.add_argument('output', type=str, help='output pickle name')
+    parser.add_argument('path_to_videos', type=str, help='path to folder containing source videos')
+    parser.add_argument('output_path', type=str, help='path to save output pickle files')
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--skip-postproc', action='store_true')
     args = parser.parse_args()
     return args
 
 
+
+def iterate_videos(path_to_videos, output_path, skip_postproc):
+    count_files = sum(1 for name in os.listdir(path_to_videos)
+        if os.path.isfile(os.path.join(path_to_videos, name)))
+    print("Starting pose extraction for " + str(count_files) + " videos in folder " + path_to_videos)
+
+    #iterate over all videos, extract poses and save them as pkl files
+    for video in os.listdir(path_to_videos):
+        anno = ntu_pose_extraction(video, skip_postproc)
+        print("Finished pose extraction for video " + video)
+
+        output_filename = osp.join(output_path, osp.splitext(osp.basename(video))[0] + '.pkl')
+        mmengine.dump(anno, output_filename)
+        print("Saved pose annotation for" + video + " to " + output_filename)
+
 if __name__ == '__main__':
     global_args = parse_args()
     args.device = global_args.device
-    args.video = global_args.video
-    args.output = global_args.output
+    args.video = global_args.path_to_videos
+    args.output = global_args.output_path
     args.skip_postproc = global_args.skip_postproc
-    anno = ntu_pose_extraction(args.video, args.skip_postproc)
-    mmengine.dump(anno, args.output)
+    iterate_videos(args.path_to_videos, args.output_path, args.skip_postproc)
+
