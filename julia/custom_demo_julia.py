@@ -17,7 +17,7 @@ from mmaction.utils import frame_extract
 
 FONTFACE = cv2.FONT_HERSHEY_DUPLEX
 FONTSCALE = 0.75
-FONTCOLOR = (255, 255, 255)  # BGR, white
+FONTCOLOR = (0, 0, 255)  # BGR, white
 THICKNESS = 1
 LINETYPE = 1
 
