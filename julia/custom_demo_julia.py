@@ -156,6 +156,8 @@ def main():
     label_map = [x.strip() for x in open(args.label_map).readlines()]
     action_label = label_map[max_pred_index]
 
+    print("Predicted action label:", action_label)
+
     visualize(args, frames, pose_data_samples, action_label, w, h)
 
     tmp_dir.cleanup()
